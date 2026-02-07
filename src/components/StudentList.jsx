@@ -205,7 +205,7 @@ export default function StudentList({
     try {
       await new Promise((resolve) => requestAnimationFrame(resolve))
       await new Promise((resolve) => requestAnimationFrame(resolve))
-      await new Promise((resolve) => setTimeout(resolve, 120))
+      await new Promise((resolve) => setTimeout(resolve, 200))
       if (document.fonts?.ready) {
         await document.fonts.ready
       }
@@ -213,17 +213,27 @@ export default function StudentList({
         window.alert('匯出失敗，請重試')
         return
       }
-      const canvas = await html2canvas(exportRef.current, {
-        scale: 2,
+      const element = exportRef.current
+      const exportWidth = element.scrollWidth || element.offsetWidth || 1120
+      const exportHeight = element.scrollHeight || element.offsetHeight || 800
+      const maxSide = isIOS() ? 2048 : 4096
+      const scale = Math.min(2, maxSide / Math.max(exportWidth, exportHeight))
+      const canvas = await html2canvas(element, {
+        scale,
         backgroundColor: '#ffffff',
         useCORS: true,
-        allowTaint: true,
+        allowTaint: false,
         scrollX: 0,
         scrollY: 0,
-        windowWidth: exportRef.current.scrollWidth,
-        windowHeight: exportRef.current.scrollHeight,
+        width: exportWidth,
+        height: exportHeight,
+        windowWidth: exportWidth,
+        windowHeight: exportHeight,
       })
-      const dataUrl = canvas.toDataURL('image/png')
+      const blob = await new Promise((resolve) =>
+        canvas.toBlob((result) => resolve(result), 'image/png', 1)
+      )
+      const dataUrl = blob ? URL.createObjectURL(blob) : canvas.toDataURL('image/png')
       if (previewWindow) {
         previewWindow.location.href = dataUrl
         previewWindow.focus()
@@ -235,6 +245,9 @@ export default function StudentList({
         document.body.appendChild(link)
         link.click()
         link.remove()
+        if (blob) {
+          URL.revokeObjectURL(dataUrl)
+        }
       }
     } catch (error) {
       console.error(error)
