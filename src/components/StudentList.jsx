@@ -132,6 +132,7 @@ export default function StudentList({
   const [expandedId, setExpandedId] = useState(null)
   const [confirmDeleteStudentId, setConfirmDeleteStudentId] = useState(null)
   const [exportData, setExportData] = useState(null)
+  const [exportPreview, setExportPreview] = useState(null)
   const [exportingId, setExportingId] = useState(null)
   const exportRef = useRef(null)
   const [query, setQuery] = useState('')
@@ -180,8 +181,8 @@ export default function StudentList({
     const rangeLabel = getLatestRangeLabel(latestRecords)
     const generatedAt = formatDateTime(new Date())
 
-    const previewWindow = isIOS() ? window.open('', '_blank') : null
     setExportingId(student.id)
+    setExportPreview(null)
     const subjectsLabel = student.subjects?.length
       ? student.subjects.join(' / ')
       : student.subject || ''
@@ -233,10 +234,11 @@ export default function StudentList({
       const blob = await new Promise((resolve) =>
         canvas.toBlob((result) => resolve(result), 'image/png', 1)
       )
-      const dataUrl = blob ? URL.createObjectURL(blob) : canvas.toDataURL('image/png')
-      if (previewWindow) {
-        previewWindow.location.href = dataUrl
-        previewWindow.focus()
+      const dataUrl = blob
+        ? URL.createObjectURL(blob)
+        : canvas.toDataURL('image/png')
+      if (isIOS()) {
+        setExportPreview({ url: dataUrl, isObjectUrl: Boolean(blob) })
       } else {
         const fileName = `評量表_${student.name}_最新${latestRecords.length}筆.png`
         const link = document.createElement('a')
@@ -248,12 +250,15 @@ export default function StudentList({
         if (blob) {
           URL.revokeObjectURL(dataUrl)
         }
+        setExportData(null)
       }
     } catch (error) {
       console.error(error)
       window.alert('匯出失敗，請稍後再試')
     } finally {
-      setExportData(null)
+      if (!isIOS()) {
+        setExportData(null)
+      }
       setExportingId(null)
     }
   }
@@ -479,24 +484,55 @@ export default function StudentList({
         )
         })
       )}
-      {exportData && (
+      {(exportData || exportPreview) && (
         <div className="fixed inset-0 z-50 bg-white/95 overflow-auto">
-          <div className="px-6 pt-6 pb-2 text-sm text-slate-500">
-            正在產生評量表圖片，請稍候…
-          </div>
-          <div className="p-6">
-            <ExportReport
-              ref={exportRef}
-              student={exportData.student}
-              records={exportData.records}
-              rangeLabel={exportData.rangeLabel}
-              generatedAt={exportData.generatedAt}
-              academyName={exportData.academyName}
-              logoDataUrl={exportData.logoDataUrl}
-            teacherName={exportData.teacherName}
-              subjectsLabel={exportData.subjectsLabel}
-            />
-          </div>
+          {!exportPreview && (
+            <>
+              <div className="px-6 pt-6 pb-2 text-sm text-slate-500">
+                正在產生評量表圖片，請稍候…
+              </div>
+              <div className="p-6">
+                <ExportReport
+                  ref={exportRef}
+                  student={exportData.student}
+                  records={exportData.records}
+                  rangeLabel={exportData.rangeLabel}
+                  generatedAt={exportData.generatedAt}
+                  academyName={exportData.academyName}
+                  logoDataUrl={exportData.logoDataUrl}
+                  teacherName={exportData.teacherName}
+                  subjectsLabel={exportData.subjectsLabel}
+                />
+              </div>
+            </>
+          )}
+          {exportPreview && (
+            <div className="p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-slate-600">
+                  長按圖片即可儲存到相簿
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (exportPreview?.isObjectUrl) {
+                      URL.revokeObjectURL(exportPreview.url)
+                    }
+                    setExportPreview(null)
+                    setExportData(null)
+                  }}
+                  className="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300"
+                >
+                  關閉
+                </button>
+              </div>
+              <img
+                src={exportPreview.url}
+                alt="評量表"
+                className="w-full rounded-lg border border-slate-200"
+              />
+            </div>
+          )}
         </div>
       )}
     </div>
