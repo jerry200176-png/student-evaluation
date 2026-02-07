@@ -36,12 +36,16 @@ export function useStorage() {
   const addStudent = (student) => {
     const id = Date.now().toString(36) + Math.random().toString(36).slice(2)
     const newStudent = { ...student, id, records: [] }
-    setData((prev) => ({
-      ...prev,
-      students: [...prev.students, newStudent].sort((a, b) =>
-        a.name.localeCompare(b.name, 'zh-TW')
-      ),
-    }))
+    setData((prev) => {
+      const updated = {
+        ...prev,
+        students: [...prev.students, newStudent].sort((a, b) =>
+          a.name.localeCompare(b.name, 'zh-TW')
+        ),
+      }
+      saveData(updated) // 同步寫入 localStorage，避免切換畫面時資料遺失
+      return updated
+    })
     return newStudent
   }
 
@@ -64,36 +68,44 @@ export function useStorage() {
   const addRecord = (studentId, record) => {
     const recordId = Date.now().toString(36) + Math.random().toString(36).slice(2)
     const newRecord = { ...record, id: recordId }
-    setData((prev) => ({
-      ...prev,
-      students: prev.students.map((s) =>
-        s.id === studentId
-          ? {
-              ...s,
-              records: [newRecord, ...(s.records || [])].sort(
-                (a, b) => new Date(b.date) - new Date(a.date)
-              ),
-            }
-          : s
-      ),
-    }))
+    setData((prev) => {
+      const updated = {
+        ...prev,
+        students: prev.students.map((s) =>
+          s.id === studentId
+            ? {
+                ...s,
+                records: [newRecord, ...(s.records || [])].sort(
+                  (a, b) => new Date(b.date) - new Date(a.date)
+                ),
+              }
+            : s
+        ),
+      }
+      saveData(updated)
+      return updated
+    })
     return newRecord
   }
 
   const updateRecord = (studentId, recordId, updates) => {
-    setData((prev) => ({
-      ...prev,
-      students: prev.students.map((s) =>
-        s.id === studentId
-          ? {
-              ...s,
-              records: (s.records || []).map((r) =>
-                r.id === recordId ? { ...r, ...updates } : r
-              ).sort((a, b) => new Date(b.date) - new Date(a.date)),
-            }
-          : s
-      ),
-    }))
+    setData((prev) => {
+      const updated = {
+        ...prev,
+        students: prev.students.map((s) =>
+          s.id === studentId
+            ? {
+                ...s,
+                records: (s.records || []).map((r) =>
+                  r.id === recordId ? { ...r, ...updates } : r
+                ).sort((a, b) => new Date(b.date) - new Date(a.date)),
+              }
+            : s
+        ),
+      }
+      saveData(updated)
+      return updated
+    })
   }
 
   const deleteRecord = (studentId, recordId) => {
