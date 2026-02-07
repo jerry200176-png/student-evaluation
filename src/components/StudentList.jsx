@@ -1,28 +1,22 @@
-import { useState } from 'react'
-
-const HOMEWORK_STATUS_LABELS = {
-  completed: '已完成',
-  partial: '部分完成',
-  incomplete: '未完成',
-  not_brought: '未攜帶',
-}
+import { useRef, useState } from 'react'
+import { toPng } from 'html-to-image'
+import ExportReport from './ExportReport'
 
 const pad2 = (value) => String(value).padStart(2, '0')
 
 const formatDate = (date) =>
   `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`
 
+const formatDateTime = (date) =>
+  `${formatDate(date)} ${pad2(date.getHours())}:${pad2(date.getMinutes())}`
+
+const isIOS = () => /iPad|iPhone|iPod/i.test(navigator.userAgent || '')
+
 const toDateOnly = (dateString) => {
   if (!dateString) return null
   const date = new Date(`${dateString}T00:00:00`)
   if (Number.isNaN(date.getTime())) return null
   return date
-}
-
-const escapeCsv = (value) => {
-  if (value == null) return ''
-  const text = String(value)
-  return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text
 }
 
 export default function StudentList({
@@ -34,8 +28,11 @@ export default function StudentList({
 }) {
   const [expandedId, setExpandedId] = useState(null)
   const [confirmDeleteStudentId, setConfirmDeleteStudentId] = useState(null)
+  const [exportData, setExportData] = useState(null)
+  const [exportingId, setExportingId] = useState(null)
+  const exportRef = useRef(null)
 
-  const exportLast8Days = (student) => {
+  const exportLast8Days = async (student) => {
     const today = new Date()
     const end = new Date(today.getFullYear(), today.getMonth(), today.getDate())
     const start = new Date(end)
@@ -52,52 +49,51 @@ export default function StudentList({
       window.alert('近八天沒有可匯出的記錄')
       return
     }
+    const rangeLabel = `${formatDate(start)} ~ ${formatDate(end)}`
+    const generatedAt = formatDateTime(new Date())
 
-    const headers = [
-      '學生姓名',
-      '就讀學校',
-      '上課科目',
-      '授課日期',
-      '授課時間',
-      '上次作業',
-      '週考成績',
-      '授課進度',
-      '下次作業範圍',
-      '上課狀況',
-      '學習進度與家長溝通',
-    ]
-
-    const rows = records.map((record) => [
-      student.name,
-      student.school,
-      student.subject,
-      record.date || '',
-      record.time || '',
-      HOMEWORK_STATUS_LABELS[record.homeworkStatus] || '',
-      record.weeklyScore ?? '',
-      record.progress || '',
-      record.nextHomework || '',
-      record.classCondition || '',
-      record.parentCommunication || '',
-    ])
-
-    const csv = [
-      headers.map(escapeCsv).join(','),
-      ...rows.map((row) => row.map(escapeCsv).join(',')),
-    ].join('\n')
-
-    const fileName = `評量表_${student.name}_${formatDate(start)}-${formatDate(end)}.csv`
-    const blob = new Blob([`\ufeff${csv}`], {
-      type: 'text/csv;charset=utf-8;',
+    const previewWindow = isIOS() ? window.open('', '_blank') : null
+    setExportingId(student.id)
+    setExportData({
+      student,
+      records,
+      rangeLabel,
+      generatedAt,
     })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = fileName
-    document.body.appendChild(link)
-    link.click()
-    link.remove()
-    URL.revokeObjectURL(url)
+
+    try {
+      await new Promise((resolve) => requestAnimationFrame(resolve))
+      await new Promise((resolve) => requestAnimationFrame(resolve))
+      if (document.fonts?.ready) {
+        await document.fonts.ready
+      }
+      if (!exportRef.current) {
+        window.alert('匯出失敗，請重試')
+        return
+      }
+      const dataUrl = await toPng(exportRef.current, {
+        pixelRatio: 2,
+        backgroundColor: '#ffffff',
+      })
+      if (previewWindow) {
+        previewWindow.location.href = dataUrl
+        previewWindow.focus()
+      } else {
+        const fileName = `評量表_${student.name}_${formatDate(start)}-${formatDate(end)}.png`
+        const link = document.createElement('a')
+        link.href = dataUrl
+        link.download = fileName
+        document.body.appendChild(link)
+        link.click()
+        link.remove()
+      }
+    } catch (error) {
+      console.error(error)
+      window.alert('匯出失敗，請稍後再試')
+    } finally {
+      setExportData(null)
+      setExportingId(null)
+    }
   }
 
   if (students.length === 0) {
@@ -177,9 +173,10 @@ export default function StudentList({
                     e.stopPropagation()
                     exportLast8Days(student)
                   }}
-                  className="px-3 py-1.5 bg-emerald-500 text-white rounded-lg text-sm font-medium hover:bg-emerald-600"
+                  disabled={exportingId === student.id}
+                  className="px-3 py-1.5 bg-emerald-500 text-white rounded-lg text-sm font-medium hover:bg-emerald-600 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  匯出近 8 天
+                  匯出近 8 天評量表
                 </button>
               </div>
               {(student.records || []).length === 0 ? (
@@ -242,6 +239,17 @@ export default function StudentList({
           )}
         </div>
       ))}
+      {exportData && (
+        <div className="fixed left-[-10000px] top-0">
+          <ExportReport
+            ref={exportRef}
+            student={exportData.student}
+            records={exportData.records}
+            rangeLabel={exportData.rangeLabel}
+            generatedAt={exportData.generatedAt}
+          />
+        </div>
+      )}
     </div>
   )
 }

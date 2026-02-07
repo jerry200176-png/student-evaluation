@@ -7,6 +7,12 @@ const HOMEWORK_STATUS = [
   { value: 'not_brought', label: '未攜帶' },
 ]
 
+const CLASS_CONDITION = [
+  { value: '良好', label: '良好' },
+  { value: '普通', label: '普通' },
+  { value: '不良', label: '不良' },
+]
+
 const formatDate = (d) => {
   if (!d) return ''
   const date = new Date(d)
@@ -177,15 +183,30 @@ export default function RecordForm({ student, record, onSave, onCancel, isEdit, 
           <label className="block text-sm font-medium text-slate-700 mb-1">
             上課狀況
           </label>
-          <textarea
-            value={form.classCondition}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, classCondition: e.target.value }))
-            }
-            placeholder="記錄學生的上課態度、專注度等"
-            rows={2}
-            className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition resize-none"
-          />
+          <div className="flex flex-wrap gap-2">
+            {CLASS_CONDITION.map((opt) => (
+              <label
+                key={opt.value}
+                className={`px-4 py-2 rounded-lg border cursor-pointer transition ${
+                  form.classCondition === opt.value
+                    ? 'border-amber-500 bg-amber-50 text-amber-800'
+                    : 'border-slate-200 hover:border-slate-300'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="classCondition"
+                  value={opt.value}
+                  checked={form.classCondition === opt.value}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, classCondition: e.target.value }))
+                  }
+                  className="sr-only"
+                />
+                {opt.label}
+              </label>
+            ))}
+          </div>
         </div>
 
         <div>
