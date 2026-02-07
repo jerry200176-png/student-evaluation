@@ -29,9 +29,18 @@ export default function RecordForm({
   addRecord,
   updateRecord,
 }) {
+  const subjectOptions = Array.from(
+    new Set(
+      [
+        ...(student.subjects || []),
+        ...(student.records || []).map((item) => item.subject),
+      ].filter(Boolean)
+    )
+  )
   const [form, setForm] = useState({
     date: formatDate(new Date()),
     time: '',
+    subject: record?.subject || lastRecord?.subject || student.subjects?.[0] || '',
     homeworkStatus: '',
     weeklyScore: '',
     progress: '',
@@ -45,6 +54,7 @@ export default function RecordForm({
       setForm({
         date: record.date || formatDate(new Date()),
         time: record.time || '',
+        subject: record.subject || '',
         homeworkStatus: record.homeworkStatus || '',
         weeklyScore: record.weeklyScore ?? '',
         progress: record.progress || '',
@@ -59,6 +69,7 @@ export default function RecordForm({
     e.preventDefault()
     const payload = {
       ...form,
+      subject: form.subject?.trim() || '',
       weeklyScore: form.weeklyScore === '' ? undefined : form.weeklyScore,
     }
     if (isEdit && record) {
@@ -73,6 +84,7 @@ export default function RecordForm({
     if (!lastRecord) return
     setForm((current) => ({
       ...current,
+      subject: lastRecord.subject || current.subject,
       homeworkStatus: lastRecord.homeworkStatus || '',
       weeklyScore: '',
       progress: lastRecord.progress || '',
@@ -139,6 +151,27 @@ export default function RecordForm({
               className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition"
             />
           </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">
+            授課科目
+          </label>
+          <input
+            type="text"
+            list="subject-options"
+            value={form.subject}
+            onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value }))}
+            placeholder="例：數學"
+            className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition"
+          />
+          {subjectOptions.length > 0 && (
+            <datalist id="subject-options">
+              {subjectOptions.map((subject) => (
+                <option key={subject} value={subject} />
+              ))}
+            </datalist>
+          )}
         </div>
 
         <div>

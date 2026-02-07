@@ -66,6 +66,10 @@ export default function RemindersPanel({ students }) {
             <span className="text-slate-500">下次作業：</span>
             {latestRecord?.nextHomework || '尚未填寫'}
           </div>
+          <div className="text-sm text-slate-600">
+            <span className="text-slate-500">科目：</span>
+            {latestRecord?.subject || student.subjects?.[0] || student.subject || '未設定'}
+          </div>
         </div>
       ))}
     </div>

@@ -139,16 +139,34 @@ export default function StudentList({
 
   const normalizedQuery = query.trim().toLowerCase()
   const subjectOptions = Array.from(
-    new Set(students.map((student) => student.subject).filter(Boolean))
+    new Set(
+      students
+        .flatMap((student) => [
+          ...(student.subjects || []),
+          ...(student.records || []).map((record) => record.subject),
+          student.subject,
+        ])
+        .filter(Boolean)
+    )
   )
   const filteredStudents = students.filter((student) => {
+    const subjectLabel = student.subjects?.length
+      ? student.subjects.join(' ')
+      : student.subject || ''
+    const recordSubjects = (student.records || [])
+      .map((record) => record.subject)
+      .filter(Boolean)
+      .join(' ')
     const matchesQuery =
       !normalizedQuery ||
-      [student.name, student.school, student.subject]
+      [student.name, student.school, subjectLabel, recordSubjects]
         .filter(Boolean)
         .some((value) => value.toLowerCase().includes(normalizedQuery))
     const matchesSubject =
-      subjectFilter === 'all' || student.subject === subjectFilter
+      subjectFilter === 'all' ||
+      student.subjects?.includes(subjectFilter) ||
+      student.subject === subjectFilter ||
+      (student.records || []).some((record) => record.subject === subjectFilter)
     return matchesQuery && matchesSubject
   })
 
@@ -164,21 +182,30 @@ export default function StudentList({
 
     const previewWindow = isIOS() ? window.open('', '_blank') : null
     setExportingId(student.id)
+    const subjectsLabel = student.subjects?.length
+      ? student.subjects.join(' / ')
+      : student.subject || ''
     setExportData({
       student,
-      records: [...latestRecords].sort(
-        (a, b) => getRecordDateTime(a) - getRecordDateTime(b)
-      ),
+      records: [...latestRecords]
+        .map((record) => ({
+          ...record,
+          subject:
+            record.subject || student.subjects?.[0] || student.subject || '',
+        }))
+        .sort((a, b) => getRecordDateTime(a) - getRecordDateTime(b)),
       rangeLabel,
       generatedAt,
       academyName: settings?.academyName,
       logoDataUrl: settings?.logoDataUrl,
       teacherName: settings?.teacherName,
+      subjectsLabel,
     })
 
     try {
       await new Promise((resolve) => requestAnimationFrame(resolve))
       await new Promise((resolve) => requestAnimationFrame(resolve))
+      await new Promise((resolve) => setTimeout(resolve, 120))
       if (document.fonts?.ready) {
         await document.fonts.ready
       }
@@ -192,9 +219,9 @@ export default function StudentList({
         useCORS: true,
         allowTaint: true,
         scrollX: 0,
-        scrollY: -window.scrollY,
-        width: exportRef.current.offsetWidth,
-        height: exportRef.current.offsetHeight,
+        scrollY: 0,
+        windowWidth: exportRef.current.scrollWidth,
+        windowHeight: exportRef.current.scrollHeight,
       })
       const dataUrl = canvas.toDataURL('image/png')
       if (previewWindow) {
@@ -285,7 +312,10 @@ export default function StudentList({
                 {student.name}
               </h3>
               <p className="text-sm text-slate-500 truncate">
-                {student.school} · {student.subject}
+                {student.school} ·{' '}
+                {student.subjects?.length
+                  ? student.subjects.join(' / ')
+                  : student.subject || '未設定科目'}
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -385,6 +415,11 @@ export default function StudentList({
                         <span className="text-slate-500 text-sm ml-2">
                           {record.time}
                         </span>
+                        {record.subject && (
+                          <span className="text-slate-500 text-sm ml-2">
+                            {record.subject}
+                          </span>
+                        )}
                         {record.weeklyScore != null && (
                           <span className="ml-2 text-amber-600 font-medium">
                             週考 {record.weeklyScore}
@@ -432,10 +467,10 @@ export default function StudentList({
         })
       )}
       {exportData && (
-        <div
-          className="fixed inset-0 pointer-events-none overflow-auto"
-          style={{ opacity: 0.01 }}
-        >
+        <div className="fixed inset-0 z-50 bg-white/95 overflow-auto">
+          <div className="px-6 pt-6 pb-2 text-sm text-slate-500">
+            正在產生評量表圖片，請稍候…
+          </div>
           <div className="p-6">
             <ExportReport
               ref={exportRef}
@@ -446,6 +481,7 @@ export default function StudentList({
               academyName={exportData.academyName}
               logoDataUrl={exportData.logoDataUrl}
             teacherName={exportData.teacherName}
+              subjectsLabel={exportData.subjectsLabel}
             />
           </div>
         </div>

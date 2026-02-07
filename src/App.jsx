@@ -21,6 +21,7 @@ export default function App() {
     addRecord,
     updateRecord,
     updateSettings,
+    importData,
   } = useStorage()
 
   const handleAddStudent = () => {
@@ -68,6 +69,11 @@ export default function App() {
     link.click()
     link.remove()
     URL.revokeObjectURL(url)
+  }
+
+  const handleImportBackup = (payload) => {
+    importData(payload)
+    window.alert('匯入完成')
   }
 
   return (
@@ -154,6 +160,7 @@ export default function App() {
                 settings={settings}
                 updateSettings={updateSettings}
                 onExportBackup={handleExportBackup}
+                onImportBackup={handleImportBackup}
               />
             )}
           </>

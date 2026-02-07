@@ -6,6 +6,7 @@ export default function SettingsPanel({
   settings,
   updateSettings,
   onExportBackup,
+  onImportBackup,
 }) {
   const [academyName, setAcademyName] = useState(settings.academyName || '')
   const [teacherName, setTeacherName] = useState(settings.teacherName || '')
@@ -28,6 +29,30 @@ export default function SettingsPanel({
       updateSettings({ logoDataUrl: reader.result })
     }
     reader.readAsDataURL(file)
+  }
+
+  const handleImportFile = (event) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(reader.result)
+        if (!Array.isArray(parsed?.students)) {
+          window.alert('備份格式不正確，請確認 JSON 檔案')
+          return
+        }
+        const ok = window.confirm('匯入後會覆蓋目前所有資料，是否繼續？')
+        if (!ok) return
+        onImportBackup(parsed)
+      } catch (error) {
+        console.error(error)
+        window.alert('JSON 解析失敗，請確認檔案內容')
+      } finally {
+        event.target.value = ''
+      }
+    }
+    reader.readAsText(file)
   }
 
   const handleSaveName = () => {
@@ -126,13 +151,24 @@ export default function SettingsPanel({
         <p className="text-sm text-slate-600">
           匯出目前所有學生與記錄，方便在不同裝置備份。
         </p>
-        <button
-          type="button"
-          onClick={onExportBackup}
-          className="px-4 py-2 bg-slate-800 text-white rounded-lg font-medium hover:bg-slate-900"
-        >
-          匯出備份（JSON）
-        </button>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <button
+            type="button"
+            onClick={onExportBackup}
+            className="px-4 py-2 bg-slate-800 text-white rounded-lg font-medium hover:bg-slate-900"
+          >
+            匯出備份（JSON）
+          </button>
+          <label className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg font-medium hover:bg-slate-200 cursor-pointer text-center">
+            匯入備份（JSON）
+            <input
+              type="file"
+              accept="application/json"
+              onChange={handleImportFile}
+              className="hidden"
+            />
+          </label>
+        </div>
       </div>
     </div>
   )

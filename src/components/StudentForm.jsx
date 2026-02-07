@@ -1,5 +1,11 @@
 import { useEffect, useState } from 'react'
 
+const parseSubjects = (value) =>
+  value
+    .split(/[，、,/;]+/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+
 export default function StudentForm({
   onSave,
   onCancel,
@@ -11,26 +17,43 @@ export default function StudentForm({
   const [form, setForm] = useState({
     name: initialStudent?.name || '',
     school: initialStudent?.school || '',
-    subject: initialStudent?.subject || '',
   })
+  const [subjectsInput, setSubjectsInput] = useState(
+    (initialStudent?.subjects?.length
+      ? initialStudent.subjects
+      : initialStudent?.subject
+        ? [initialStudent.subject]
+        : []
+    ).join(', ')
+  )
 
   useEffect(() => {
     if (initialStudent) {
       setForm({
         name: initialStudent?.name || '',
         school: initialStudent?.school || '',
-        subject: initialStudent?.subject || '',
       })
+      const subjects = initialStudent?.subjects?.length
+        ? initialStudent.subjects
+        : initialStudent?.subject
+          ? [initialStudent.subject]
+          : []
+      setSubjectsInput(subjects.join(', '))
     }
   }, [initialStudent])
 
   const handleSubmit = (e) => {
     e.preventDefault()
     if (!form.name.trim()) return
+    const subjects = parseSubjects(subjectsInput)
+    const payload = {
+      ...form,
+      subjects,
+    }
     if (isEdit && initialStudent) {
-      updateStudent(initialStudent.id, form)
+      updateStudent(initialStudent.id, payload)
     } else {
-      addStudent(form)
+      addStudent(payload)
     }
     onSave()
   }
@@ -70,15 +93,16 @@ export default function StudentForm({
 
       <div>
         <label className="block text-sm font-medium text-slate-700 mb-1">
-          上課科目
+          上課科目（可多個）
         </label>
         <input
           type="text"
-          value={form.subject}
-          onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value }))}
-          placeholder="例：數學、英文"
+          value={subjectsInput}
+          onChange={(e) => setSubjectsInput(e.target.value)}
+          placeholder="例：數學, 英文"
           className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition"
         />
+        <p className="text-xs text-slate-400 mt-1">用逗號分隔多個科目</p>
       </div>
 
       <div className="flex gap-3 pt-4">

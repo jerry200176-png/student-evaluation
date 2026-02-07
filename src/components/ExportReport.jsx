@@ -18,6 +18,7 @@ const ExportReport = forwardRef(function ExportReport(
     academyName,
     logoDataUrl,
     teacherName,
+    subjectsLabel,
   },
   ref
 ) {
@@ -54,7 +55,7 @@ const ExportReport = forwardRef(function ExportReport(
             </p>
             <p>
               <span className="text-slate-500">上課科目：</span>
-              {student.subject || '—'}
+              {subjectsLabel || student.subject || '—'}
             </p>
             <p>
               <span className="text-slate-500">老師姓名：</span>
@@ -68,6 +69,7 @@ const ExportReport = forwardRef(function ExportReport(
             <tr className="bg-slate-100 text-slate-700">
               <th className={cellClass}>授課日期</th>
               <th className={cellClass}>授課時間</th>
+              <th className={cellClass}>授課科目</th>
               <th className={cellClass}>上次作業</th>
               <th className={cellClass}>週考成績</th>
               <th className={cellClass}>授課進度</th>
@@ -81,6 +83,9 @@ const ExportReport = forwardRef(function ExportReport(
               <tr key={record.id} className="text-slate-700">
                 <td className={`${cellClass} whitespace-nowrap`}>{record.date || '—'}</td>
                 <td className={`${cellClass} whitespace-nowrap`}>{record.time || '—'}</td>
+                <td className={`${cellClass} whitespace-nowrap`}>
+                  {record.subject || '—'}
+                </td>
                 <td className={cellClass}>
                   {HOMEWORK_STATUS_LABELS[record.homeworkStatus] || '—'}
                 </td>

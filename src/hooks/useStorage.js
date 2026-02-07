@@ -13,9 +13,30 @@ const defaultData = {
   settings: defaultSettings,
 }
 
+const normalizeStudent = (student) => {
+  const subjects = Array.isArray(student.subjects)
+    ? student.subjects
+    : student.subject
+      ? [student.subject]
+      : []
+  const normalizedSubjects = subjects
+    .map((item) => String(item).trim())
+    .filter(Boolean)
+  const records = (student.records || []).map((record) => ({
+    ...record,
+    subject: record.subject || '',
+  }))
+  return {
+    ...student,
+    subjects: normalizedSubjects,
+    records,
+  }
+}
+
 const normalizeData = (raw) => ({
   ...defaultData,
   ...(raw || {}),
+  students: (raw?.students || []).map(normalizeStudent),
   settings: {
     ...defaultSettings,
     ...((raw && raw.settings) || {}),
@@ -51,7 +72,13 @@ export function useStorage() {
 
   const addStudent = (student) => {
     const id = Date.now().toString(36) + Math.random().toString(36).slice(2)
-    const newStudent = { ...student, id, records: [] }
+    const subjects = Array.isArray(student.subjects) ? student.subjects : []
+    const newStudent = {
+      ...student,
+      id,
+      subjects: subjects.map((item) => String(item).trim()).filter(Boolean),
+      records: [],
+    }
     setData((prev) => {
       const updated = {
         ...prev,
@@ -67,10 +94,16 @@ export function useStorage() {
 
   const updateStudent = (id, updates) => {
     setData((prev) => {
+      const nextUpdates = {
+        ...updates,
+        subjects: Array.isArray(updates.subjects)
+          ? updates.subjects.map((item) => String(item).trim()).filter(Boolean)
+          : updates.subjects,
+      }
       const updated = {
         ...prev,
         students: prev.students.map((s) =>
-          s.id === id ? { ...s, ...updates } : s
+          s.id === id ? { ...s, ...nextUpdates } : s
         ),
       }
       saveData(updated)
@@ -99,6 +132,10 @@ export function useStorage() {
           s.id === studentId
             ? {
                 ...s,
+                subjects:
+                  newRecord.subject && !s.subjects?.includes(newRecord.subject)
+                    ? [...(s.subjects || []), newRecord.subject]
+                    : s.subjects,
                 records: [newRecord, ...(s.records || [])].sort(
                   (a, b) => new Date(b.date) - new Date(a.date)
                 ),
@@ -118,12 +155,28 @@ export function useStorage() {
         ...prev,
         students: prev.students.map((s) =>
           s.id === studentId
-            ? {
-                ...s,
-                records: (s.records || []).map((r) =>
-                  r.id === recordId ? { ...r, ...updates } : r
-                ).sort((a, b) => new Date(b.date) - new Date(a.date)),
-              }
+            ? (() => {
+                let updatedSubject = null
+                const records = (s.records || []).map((r) => {
+                  if (r.id === recordId) {
+                    const nextRecord = { ...r, ...updates }
+                    updatedSubject = nextRecord.subject
+                    return nextRecord
+                  }
+                  return r
+                })
+                const subjects =
+                  updatedSubject && !s.subjects?.includes(updatedSubject)
+                    ? [...(s.subjects || []), updatedSubject]
+                    : s.subjects
+                return {
+                  ...s,
+                  subjects,
+                  records: records.sort(
+                    (a, b) => new Date(b.date) - new Date(a.date)
+                  ),
+                }
+              })()
             : s
         ),
       }
@@ -164,6 +217,12 @@ export function useStorage() {
     })
   }
 
+  const importData = (raw) => {
+    const normalized = normalizeData(raw)
+    setData(normalized)
+    saveData(normalized)
+  }
+
   return {
     students: data.students,
     settings: data.settings,
@@ -174,6 +233,7 @@ export function useStorage() {
     updateRecord,
     deleteRecord,
     updateSettings,
+    importData,
     data,
   }
 }
