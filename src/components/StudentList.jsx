@@ -35,10 +35,18 @@ const toDateOnly = (dateString) => {
 
 const getRecordDateTime = (record) => {
   if (!record?.date) return null
-  const time = record.time ? `${record.time}:00` : '00:00:00'
+  const time = (record.timeStart ?? record.time) ? `${record.timeStart ?? record.time}:00` : '00:00:00'
   const date = new Date(`${record.date}T${time}`)
   if (!Number.isNaN(date.getTime())) return date
   return toDateOnly(record.date)
+}
+
+const formatTimeRange = (record) => {
+  const start = record.timeStart ?? record.time
+  const end = record.timeEnd
+  if (start && end) return `${start} - ${end}`
+  if (start) return start
+  return ''
 }
 
 const getLast8DaysRange = () => {
@@ -431,7 +439,7 @@ export default function StudentList({
                           {record.date}
                         </span>
                         <span className="text-slate-500 text-sm ml-2">
-                          {record.time}
+                          {formatTimeRange(record) || record.time || ''}
                         </span>
                         {record.subject && (
                           <span className="text-slate-500 text-sm ml-2">

@@ -39,7 +39,8 @@ export default function RecordForm({
   )
   const [form, setForm] = useState({
     date: formatDate(new Date()),
-    time: '',
+    timeStart: record?.timeStart ?? record?.time ?? '',
+    timeEnd: record?.timeEnd ?? '',
     subject: record?.subject || lastRecord?.subject || student.subjects?.[0] || '',
     homeworkStatus: '',
     weeklyScore: '',
@@ -53,7 +54,8 @@ export default function RecordForm({
     if (record) {
       setForm({
         date: record.date || formatDate(new Date()),
-        time: record.time || '',
+        timeStart: record.timeStart ?? record.time ?? '',
+        timeEnd: record.timeEnd ?? '',
         subject: record.subject || '',
         homeworkStatus: record.homeworkStatus || '',
         weeklyScore: record.weeklyScore ?? '',
@@ -70,6 +72,8 @@ export default function RecordForm({
     const payload = {
       ...form,
       subject: form.subject?.trim() || '',
+      timeStart: form.timeStart || '',
+      timeEnd: form.timeEnd || '',
       weeklyScore: form.weeklyScore === '' ? undefined : form.weeklyScore,
     }
     if (isEdit && record) {
@@ -85,6 +89,8 @@ export default function RecordForm({
     setForm((current) => ({
       ...current,
       subject: lastRecord.subject || current.subject,
+      timeStart: lastRecord.timeStart ?? lastRecord.time ?? '',
+      timeEnd: lastRecord.timeEnd ?? '',
       homeworkStatus: lastRecord.homeworkStatus || '',
       weeklyScore: '',
       progress: lastRecord.progress || '',
@@ -140,16 +146,29 @@ export default function RecordForm({
               required
             />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              授課時間
-            </label>
-            <input
-              type="time"
-              value={form.time}
-              onChange={(e) => setForm((f) => ({ ...f, time: e.target.value }))}
-              className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition"
-            />
+          <div className="col-span-2 grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                授課時間（開始）
+              </label>
+              <input
+                type="time"
+                value={form.timeStart}
+                onChange={(e) => setForm((f) => ({ ...f, timeStart: e.target.value }))}
+                className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                授課時間（結束）
+              </label>
+              <input
+                type="time"
+                value={form.timeEnd}
+                onChange={(e) => setForm((f) => ({ ...f, timeEnd: e.target.value }))}
+                className="w-full px-4 py-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition"
+              />
+            </div>
           </div>
         </div>
 

@@ -9,6 +9,14 @@ const HOMEWORK_STATUS_LABELS = {
 
 const cellClass = 'border border-slate-200 px-2 py-2 align-top'
 
+const formatTimeRange = (record) => {
+  const start = record.timeStart ?? record.time
+  const end = record.timeEnd
+  if (start && end) return `${start} - ${end}`
+  if (start) return start
+  return '—'
+}
+
 const ExportReport = forwardRef(function ExportReport(
   {
     student,
@@ -68,7 +76,7 @@ const ExportReport = forwardRef(function ExportReport(
           <thead>
             <tr className="bg-slate-100 text-slate-700">
               <th className={cellClass}>授課日期</th>
-              <th className={cellClass}>授課時間</th>
+              <th className={cellClass}>授課時間（起～迄）</th>
               <th className={cellClass}>授課科目</th>
               <th className={cellClass}>上次作業</th>
               <th className={cellClass}>週考成績</th>
@@ -82,7 +90,7 @@ const ExportReport = forwardRef(function ExportReport(
             {records.map((record) => (
               <tr key={record.id} className="text-slate-700">
                 <td className={`${cellClass} whitespace-nowrap`}>{record.date || '—'}</td>
-                <td className={`${cellClass} whitespace-nowrap`}>{record.time || '—'}</td>
+                <td className={`${cellClass} whitespace-nowrap`}>{formatTimeRange(record)}</td>
                 <td className={`${cellClass} whitespace-nowrap`}>
                   {record.subject || '—'}
                 </td>
