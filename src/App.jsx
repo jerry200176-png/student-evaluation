@@ -5,12 +5,13 @@ import RecordForm from './components/RecordForm'
 import { useStorage } from './hooks/useStorage'
 
 export default function App() {
-  const [view, setView] = useState('list') // list | addStudent | addRecord | editRecord
+  const [view, setView] = useState('list') // list | addStudent | editStudent | addRecord | editRecord
   const [selectedStudent, setSelectedStudent] = useState(null)
   const [selectedRecord, setSelectedRecord] = useState(null)
   const {
     students,
     addStudent,
+    updateStudent,
     deleteStudent,
     addRecord,
     updateRecord,
@@ -25,6 +26,12 @@ export default function App() {
     setSelectedStudent(student)
     setSelectedRecord(null)
     setView('addRecord')
+  }
+
+  const handleEditStudent = (student) => {
+    setSelectedStudent(student)
+    setSelectedRecord(null)
+    setView('editStudent')
   }
 
   const handleEditRecord = (student, record) => {
@@ -44,10 +51,7 @@ export default function App() {
       {/* Header */}
       <header className="sticky top-0 z-10 bg-[#1e3a5f] text-white shadow-lg">
         <div className="flex items-center justify-between px-4 py-4 max-w-2xl mx-auto">
-          <div>
-            <h1 className="text-xl font-bold tracking-tight">學生評量表</h1>
-            <p className="text-xs text-amber-100/90">學生數：{students.length}</p>
-          </div>
+          <h1 className="text-xl font-bold tracking-tight">學生評量表</h1>
           {view === 'list' && (
             <button
               onClick={handleAddStudent}
@@ -56,7 +60,10 @@ export default function App() {
               新增學生
             </button>
           )}
-          {(view === 'addStudent' || view === 'addRecord' || view === 'editRecord') && (
+          {(view === 'addStudent' ||
+            view === 'editStudent' ||
+            view === 'addRecord' ||
+            view === 'editRecord') && (
             <button
               onClick={handleBack}
               className="px-4 py-2 text-amber-200 hover:text-white transition-colors"
@@ -73,11 +80,25 @@ export default function App() {
             students={students}
             deleteStudent={deleteStudent}
             onAddRecord={handleAddRecord}
+            onEditStudent={handleEditStudent}
             onEditRecord={handleEditRecord}
           />
         )}
         {view === 'addStudent' && (
-          <StudentForm onSave={handleBack} onCancel={handleBack} addStudent={addStudent} />
+          <StudentForm
+            onSave={handleBack}
+            onCancel={handleBack}
+            addStudent={addStudent}
+          />
+        )}
+        {view === 'editStudent' && selectedStudent && (
+          <StudentForm
+            onSave={handleBack}
+            onCancel={handleBack}
+            updateStudent={updateStudent}
+            initialStudent={selectedStudent}
+            isEdit
+          />
         )}
         {(view === 'addRecord' || view === 'editRecord') && selectedStudent && (
           <RecordForm

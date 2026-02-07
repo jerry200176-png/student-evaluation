@@ -50,19 +50,27 @@ export function useStorage() {
   }
 
   const updateStudent = (id, updates) => {
-    setData((prev) => ({
-      ...prev,
-      students: prev.students.map((s) =>
-        s.id === id ? { ...s, ...updates } : s
-      ),
-    }))
+    setData((prev) => {
+      const updated = {
+        ...prev,
+        students: prev.students.map((s) =>
+          s.id === id ? { ...s, ...updates } : s
+        ),
+      }
+      saveData(updated)
+      return updated
+    })
   }
 
   const deleteStudent = (id) => {
-    setData((prev) => ({
-      ...prev,
-      students: prev.students.filter((s) => s.id !== id),
-    }))
+    setData((prev) => {
+      const updated = {
+        ...prev,
+        students: prev.students.filter((s) => s.id !== id),
+      }
+      saveData(updated)
+      return updated
+    })
   }
 
   const addRecord = (studentId, record) => {
@@ -109,17 +117,21 @@ export function useStorage() {
   }
 
   const deleteRecord = (studentId, recordId) => {
-    setData((prev) => ({
-      ...prev,
-      students: prev.students.map((s) =>
-        s.id === studentId
-          ? {
-              ...s,
-              records: (s.records || []).filter((r) => r.id !== recordId),
-            }
-          : s
-      ),
-    }))
+    setData((prev) => {
+      const updated = {
+        ...prev,
+        students: prev.students.map((s) =>
+          s.id === studentId
+            ? {
+                ...s,
+                records: (s.records || []).filter((r) => r.id !== recordId),
+              }
+            : s
+        ),
+      }
+      saveData(updated)
+      return updated
+    })
   }
 
   return {

@@ -1,22 +1,45 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
-export default function StudentForm({ onSave, onCancel, addStudent }) {
+export default function StudentForm({
+  onSave,
+  onCancel,
+  addStudent,
+  updateStudent,
+  initialStudent,
+  isEdit = false,
+}) {
   const [form, setForm] = useState({
-    name: '',
-    school: '',
-    subject: '',
+    name: initialStudent?.name || '',
+    school: initialStudent?.school || '',
+    subject: initialStudent?.subject || '',
   })
+
+  useEffect(() => {
+    if (initialStudent) {
+      setForm({
+        name: initialStudent?.name || '',
+        school: initialStudent?.school || '',
+        subject: initialStudent?.subject || '',
+      })
+    }
+  }, [initialStudent])
 
   const handleSubmit = (e) => {
     e.preventDefault()
     if (!form.name.trim()) return
-    addStudent(form)
+    if (isEdit && initialStudent) {
+      updateStudent(initialStudent.id, form)
+    } else {
+      addStudent(form)
+    }
     onSave()
   }
 
   return (
     <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-md p-6 space-y-5">
-      <h2 className="text-lg font-semibold text-slate-800 mb-4">新增學生</h2>
+      <h2 className="text-lg font-semibold text-slate-800 mb-4">
+        {isEdit ? '編輯學生' : '新增學生'}
+      </h2>
 
       <div>
         <label className="block text-sm font-medium text-slate-700 mb-1">

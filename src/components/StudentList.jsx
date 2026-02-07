@@ -1,8 +1,104 @@
 import { useState } from 'react'
 
-export default function StudentList({ students, deleteStudent, onAddRecord, onEditRecord }) {
+const HOMEWORK_STATUS_LABELS = {
+  completed: '已完成',
+  partial: '部分完成',
+  incomplete: '未完成',
+  not_brought: '未攜帶',
+}
+
+const pad2 = (value) => String(value).padStart(2, '0')
+
+const formatDate = (date) =>
+  `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`
+
+const toDateOnly = (dateString) => {
+  if (!dateString) return null
+  const date = new Date(`${dateString}T00:00:00`)
+  if (Number.isNaN(date.getTime())) return null
+  return date
+}
+
+const escapeCsv = (value) => {
+  if (value == null) return ''
+  const text = String(value)
+  return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text
+}
+
+export default function StudentList({
+  students,
+  deleteStudent,
+  onAddRecord,
+  onEditStudent,
+  onEditRecord,
+}) {
   const [expandedId, setExpandedId] = useState(null)
-  const [confirmDelete, setConfirmDelete] = useState(null)
+  const [confirmDeleteStudentId, setConfirmDeleteStudentId] = useState(null)
+
+  const exportLast8Days = (student) => {
+    const today = new Date()
+    const end = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+    const start = new Date(end)
+    start.setDate(end.getDate() - 7)
+
+    const records = (student.records || [])
+      .filter((record) => {
+        const date = toDateOnly(record.date)
+        return date && date >= start && date <= end
+      })
+      .sort((a, b) => new Date(a.date) - new Date(b.date))
+
+    if (records.length === 0) {
+      window.alert('近八天沒有可匯出的記錄')
+      return
+    }
+
+    const headers = [
+      '學生姓名',
+      '就讀學校',
+      '上課科目',
+      '授課日期',
+      '授課時間',
+      '上次作業',
+      '週考成績',
+      '授課進度',
+      '下次作業範圍',
+      '上課狀況',
+      '學習進度與家長溝通',
+    ]
+
+    const rows = records.map((record) => [
+      student.name,
+      student.school,
+      student.subject,
+      record.date || '',
+      record.time || '',
+      HOMEWORK_STATUS_LABELS[record.homeworkStatus] || '',
+      record.weeklyScore ?? '',
+      record.progress || '',
+      record.nextHomework || '',
+      record.classCondition || '',
+      record.parentCommunication || '',
+    ])
+
+    const csv = [
+      headers.map(escapeCsv).join(','),
+      ...rows.map((row) => row.map(escapeCsv).join(',')),
+    ].join('\n')
+
+    const fileName = `評量表_${student.name}_${formatDate(start)}-${formatDate(end)}.csv`
+    const blob = new Blob([`\ufeff${csv}`], {
+      type: 'text/csv;charset=utf-8;',
+    })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = fileName
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    URL.revokeObjectURL(url)
+  }
 
   if (students.length === 0) {
     return (
@@ -43,6 +139,26 @@ export default function StudentList({ students, deleteStudent, onAddRecord, onEd
               >
                 新增記錄
               </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onEditStudent(student)
+                }}
+                className="px-3 py-1.5 bg-slate-200 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-300"
+              >
+                編輯
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setConfirmDeleteStudentId(
+                    confirmDeleteStudentId === student.id ? null : student.id
+                  )
+                }}
+                className="px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-sm font-medium hover:bg-red-100"
+              >
+                刪除
+              </button>
               <span
                 className={`text-slate-400 transition-transform ${
                   expandedId === student.id ? 'rotate-180' : ''
@@ -55,6 +171,17 @@ export default function StudentList({ students, deleteStudent, onAddRecord, onEd
 
           {expandedId === student.id && (
             <div className="border-t border-slate-100 bg-slate-50/50 p-4">
+              <div className="flex flex-wrap gap-2 mb-3">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    exportLast8Days(student)
+                  }}
+                  className="px-3 py-1.5 bg-emerald-500 text-white rounded-lg text-sm font-medium hover:bg-emerald-600"
+                >
+                  匯出近 8 天
+                </button>
+              </div>
               {(student.records || []).length === 0 ? (
                 <p className="text-sm text-slate-500 py-2">尚無上課記錄</p>
               ) : (
@@ -84,35 +211,26 @@ export default function StudentList({ students, deleteStudent, onAddRecord, onEd
                         >
                           編輯
                         </button>
-                        {confirmDelete?.studentId === student.id &&
-                        confirmDelete?.recordId === record.id ? (
-                          <button
-                            onClick={() => setConfirmDelete(null)}
-                            className="text-sm text-slate-500"
-                          >
-                            取消
-                          </button>
-                        ) : null}
                       </div>
                     </li>
                   ))}
                 </ul>
               )}
-              {confirmDelete?.studentId === student.id && (
+              {confirmDeleteStudentId === student.id && (
                 <div className="mt-3 p-3 bg-red-50 rounded-lg text-sm text-red-700">
                   確定要刪除此學生？此操作無法復原。
                   <div className="flex gap-2 mt-2">
                     <button
                       onClick={() => {
-                        deleteStudent(confirmDelete.studentId)
-                        setConfirmDelete(null)
+                        deleteStudent(student.id)
+                        setConfirmDeleteStudentId(null)
                       }}
                       className="px-3 py-1 bg-red-600 text-white rounded"
                     >
                       確認刪除
                     </button>
                     <button
-                      onClick={() => setConfirmDelete(null)}
+                      onClick={() => setConfirmDeleteStudentId(null)}
                       className="px-3 py-1 bg-slate-200 rounded"
                     >
                       取消
