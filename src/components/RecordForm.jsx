@@ -19,7 +19,16 @@ const formatDate = (d) => {
   return date.toISOString().split('T')[0]
 }
 
-export default function RecordForm({ student, record, onSave, onCancel, isEdit, addRecord, updateRecord }) {
+export default function RecordForm({
+  student,
+  record,
+  lastRecord,
+  onSave,
+  onCancel,
+  isEdit,
+  addRecord,
+  updateRecord,
+}) {
   const [form, setForm] = useState({
     date: formatDate(new Date()),
     time: '',
@@ -60,6 +69,19 @@ export default function RecordForm({ student, record, onSave, onCancel, isEdit, 
     onSave()
   }
 
+  const handleApplyLast = () => {
+    if (!lastRecord) return
+    setForm((current) => ({
+      ...current,
+      homeworkStatus: lastRecord.homeworkStatus || '',
+      weeklyScore: '',
+      progress: lastRecord.progress || '',
+      nextHomework: lastRecord.nextHomework || '',
+      classCondition: lastRecord.classCondition || '',
+      parentCommunication: lastRecord.parentCommunication || '',
+    }))
+  }
+
   return (
     <div className="space-y-4">
       <div className="bg-amber-50 rounded-lg px-4 py-2 border border-amber-200">
@@ -77,6 +99,21 @@ export default function RecordForm({ student, record, onSave, onCancel, isEdit, 
         <h2 className="text-lg font-semibold text-slate-800">
           {isEdit ? '編輯上課記錄' : '新增上課記錄'}
         </h2>
+
+        {!isEdit && lastRecord && (
+          <div className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 flex items-center justify-between">
+            <p className="text-sm text-slate-600">
+              套用上次記錄可快速填入內容
+            </p>
+            <button
+              type="button"
+              onClick={handleApplyLast}
+              className="px-3 py-1.5 bg-slate-800 text-white rounded-lg text-sm hover:bg-slate-900"
+            >
+              套用上次記錄
+            </button>
+          </div>
+        )}
 
         <div className="grid grid-cols-2 gap-4">
           <div>

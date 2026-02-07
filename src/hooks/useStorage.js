@@ -2,15 +2,30 @@ import { useState, useEffect } from 'react'
 
 const STORAGE_KEY = 'student-evaluation-data'
 
+const defaultSettings = {
+  academyName: '台北全真一對一補習班',
+  logoDataUrl: '',
+}
+
 const defaultData = {
   students: [],
+  settings: defaultSettings,
 }
+
+const normalizeData = (raw) => ({
+  ...defaultData,
+  ...(raw || {}),
+  settings: {
+    ...defaultSettings,
+    ...((raw && raw.settings) || {}),
+  },
+})
 
 function loadData() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (raw) {
-      return JSON.parse(raw)
+      return normalizeData(JSON.parse(raw))
     }
   } catch (e) {
     console.error('Failed to load data:', e)
@@ -134,13 +149,30 @@ export function useStorage() {
     })
   }
 
+  const updateSettings = (updates) => {
+    setData((prev) => {
+      const updated = {
+        ...prev,
+        settings: {
+          ...prev.settings,
+          ...updates,
+        },
+      }
+      saveData(updated)
+      return updated
+    })
+  }
+
   return {
     students: data.students,
+    settings: data.settings,
     addStudent,
     updateStudent,
     deleteStudent,
     addRecord,
     updateRecord,
     deleteRecord,
+    updateSettings,
+    data,
   }
 }

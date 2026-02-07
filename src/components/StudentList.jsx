@@ -1,6 +1,20 @@
 import { useRef, useState } from 'react'
-import { toPng } from 'html-to-image'
+import html2canvas from 'html2canvas'
 import ExportReport from './ExportReport'
+
+const HOMEWORK_STATUS_LABELS = {
+  completed: '已完成',
+  partial: '部分完成',
+  incomplete: '未完成',
+  not_brought: '未攜帶',
+}
+
+const HOMEWORK_STATUS_ORDER = [
+  'completed',
+  'partial',
+  'incomplete',
+  'not_brought',
+]
 
 const pad2 = (value) => String(value).padStart(2, '0')
 
@@ -19,8 +33,64 @@ const toDateOnly = (dateString) => {
   return date
 }
 
+const getLast8DaysRange = () => {
+  const today = new Date()
+  const end = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+  const start = new Date(end)
+  start.setDate(end.getDate() - 7)
+  return { start, end }
+}
+
+const getLast8DaysRecords = (records) => {
+  const { start, end } = getLast8DaysRange()
+  return (records || [])
+    .filter((record) => {
+      const date = toDateOnly(record.date)
+      return date && date >= start && date <= end
+    })
+    .sort((a, b) => new Date(a.date) - new Date(b.date))
+}
+
+const parseScore = (value) => {
+  if (value == null) return null
+  const match = String(value).match(/-?\d+(?:\.\d+)?/)
+  if (!match) return null
+  const num = Number(match[0])
+  return Number.isNaN(num) ? null : num
+}
+
+const getHomeworkStats = (records) =>
+  records.reduce(
+    (acc, record) => {
+      const key = record.homeworkStatus
+      if (acc[key] != null) {
+        acc[key] += 1
+      }
+      return acc
+    },
+    {
+      completed: 0,
+      partial: 0,
+      incomplete: 0,
+      not_brought: 0,
+    }
+  )
+
+const getScoreStats = (records) => {
+  const scores = records
+    .map((record) => parseScore(record.weeklyScore))
+    .filter((score) => score != null)
+  if (scores.length === 0) {
+    return { average: null, count: 0 }
+  }
+  const sum = scores.reduce((total, value) => total + value, 0)
+  const average = Math.round((sum / scores.length) * 10) / 10
+  return { average, count: scores.length }
+}
+
 export default function StudentList({
   students,
+  settings,
   deleteStudent,
   onAddRecord,
   onEditStudent,
@@ -31,19 +101,27 @@ export default function StudentList({
   const [exportData, setExportData] = useState(null)
   const [exportingId, setExportingId] = useState(null)
   const exportRef = useRef(null)
+  const [query, setQuery] = useState('')
+  const [subjectFilter, setSubjectFilter] = useState('all')
+
+  const normalizedQuery = query.trim().toLowerCase()
+  const subjectOptions = Array.from(
+    new Set(students.map((student) => student.subject).filter(Boolean))
+  )
+  const filteredStudents = students.filter((student) => {
+    const matchesQuery =
+      !normalizedQuery ||
+      [student.name, student.school, student.subject]
+        .filter(Boolean)
+        .some((value) => value.toLowerCase().includes(normalizedQuery))
+    const matchesSubject =
+      subjectFilter === 'all' || student.subject === subjectFilter
+    return matchesQuery && matchesSubject
+  })
 
   const exportLast8Days = async (student) => {
-    const today = new Date()
-    const end = new Date(today.getFullYear(), today.getMonth(), today.getDate())
-    const start = new Date(end)
-    start.setDate(end.getDate() - 7)
-
-    const records = (student.records || [])
-      .filter((record) => {
-        const date = toDateOnly(record.date)
-        return date && date >= start && date <= end
-      })
-      .sort((a, b) => new Date(a.date) - new Date(b.date))
+    const { start, end } = getLast8DaysRange()
+    const records = getLast8DaysRecords(student.records)
 
     if (records.length === 0) {
       window.alert('近八天沒有可匯出的記錄')
@@ -59,6 +137,8 @@ export default function StudentList({
       records,
       rangeLabel,
       generatedAt,
+      academyName: settings?.academyName,
+      logoDataUrl: settings?.logoDataUrl,
     })
 
     try {
@@ -71,10 +151,17 @@ export default function StudentList({
         window.alert('匯出失敗，請重試')
         return
       }
-      const dataUrl = await toPng(exportRef.current, {
-        pixelRatio: 2,
+      const canvas = await html2canvas(exportRef.current, {
+        scale: 2,
         backgroundColor: '#ffffff',
+        useCORS: true,
+        allowTaint: true,
+        scrollX: 0,
+        scrollY: -window.scrollY,
+        width: exportRef.current.offsetWidth,
+        height: exportRef.current.offsetHeight,
       })
+      const dataUrl = canvas.toDataURL('image/png')
       if (previewWindow) {
         previewWindow.location.href = dataUrl
         previewWindow.focus()
@@ -108,7 +195,48 @@ export default function StudentList({
 
   return (
     <div className="space-y-4">
-      {students.map((student) => (
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 space-y-3">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="md:col-span-2">
+            <label className="block text-xs text-slate-500 mb-1">搜尋學生</label>
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="輸入姓名、學校或科目"
+              className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-slate-500 mb-1">科目篩選</label>
+            <select
+              value={subjectFilter}
+              onChange={(e) => setSubjectFilter(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition"
+            >
+              <option value="all">全部科目</option>
+              {subjectOptions.map((subject) => (
+                <option key={subject} value={subject}>
+                  {subject}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <p className="text-xs text-slate-500">
+          顯示 {filteredStudents.length} / {students.length} 位學生
+        </p>
+      </div>
+      {filteredStudents.length === 0 ? (
+        <div className="text-center py-10 text-slate-500">
+          沒有符合條件的學生
+        </div>
+      ) : (
+        filteredStudents.map((student) => {
+        const last8Records = getLast8DaysRecords(student.records)
+        const homeworkStats = getHomeworkStats(last8Records)
+        const scoreStats = getScoreStats(last8Records)
+        return (
         <div
           key={student.id}
           className="bg-white rounded-xl shadow-md overflow-hidden border border-slate-200"
@@ -167,6 +295,33 @@ export default function StudentList({
 
           {expandedId === student.id && (
             <div className="border-t border-slate-100 bg-slate-50/50 p-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                <div className="bg-white rounded-lg border border-slate-200 px-3 py-2">
+                  <p className="text-xs text-slate-500 mb-1">近 8 天作業完成度</p>
+                  <p className="text-sm text-slate-700">
+                    {HOMEWORK_STATUS_ORDER.map((key) => (
+                      <span key={key} className="mr-2">
+                        {HOMEWORK_STATUS_LABELS[key]} {homeworkStats[key]}
+                      </span>
+                    ))}
+                  </p>
+                  <p className="text-xs text-slate-400 mt-1">
+                    記錄 {last8Records.length} 次
+                  </p>
+                </div>
+                <div className="bg-white rounded-lg border border-slate-200 px-3 py-2">
+                  <p className="text-xs text-slate-500 mb-1">近 8 天週考平均</p>
+                  <p className="text-sm text-slate-700">
+                    {scoreStats.average != null ? scoreStats.average : '—'}
+                    {scoreStats.count > 0 && (
+                      <span className="text-xs text-slate-400 ml-2">
+                        ({scoreStats.count} 次)
+                      </span>
+                    )}
+                  </p>
+                  <p className="text-xs text-slate-400 mt-1">分數可輸入數字</p>
+                </div>
+              </div>
               <div className="flex flex-wrap gap-2 mb-3">
                 <button
                   onClick={(e) => {
@@ -238,16 +393,25 @@ export default function StudentList({
             </div>
           )}
         </div>
-      ))}
+        )
+        })
+      )}
       {exportData && (
-        <div className="fixed left-[-10000px] top-0">
-          <ExportReport
-            ref={exportRef}
-            student={exportData.student}
-            records={exportData.records}
-            rangeLabel={exportData.rangeLabel}
-            generatedAt={exportData.generatedAt}
-          />
+        <div
+          className="fixed inset-0 pointer-events-none overflow-auto"
+          style={{ opacity: 0.01 }}
+        >
+          <div className="p-6">
+            <ExportReport
+              ref={exportRef}
+              student={exportData.student}
+              records={exportData.records}
+              rangeLabel={exportData.rangeLabel}
+              generatedAt={exportData.generatedAt}
+              academyName={exportData.academyName}
+              logoDataUrl={exportData.logoDataUrl}
+            />
+          </div>
         </div>
       )}
     </div>

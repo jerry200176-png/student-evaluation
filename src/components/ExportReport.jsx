@@ -10,16 +10,30 @@ const HOMEWORK_STATUS_LABELS = {
 const cellClass = 'border border-slate-200 px-2 py-2 align-top'
 
 const ExportReport = forwardRef(function ExportReport(
-  { student, records, rangeLabel, generatedAt },
+  { student, records, rangeLabel, generatedAt, academyName, logoDataUrl },
   ref
 ) {
   return (
     <div ref={ref} className="w-[1120px] bg-white text-slate-800 font-sans">
       <div className="border border-slate-200 rounded-xl p-6">
         <div className="flex items-start justify-between gap-6 border-b border-slate-200 pb-4 mb-4">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">學生評量表</h1>
-            <p className="text-sm text-slate-500 mt-1">期間：{rangeLabel}</p>
+          <div className="flex items-center gap-4">
+            {logoDataUrl ? (
+              <img
+                src={logoDataUrl}
+                alt="Logo"
+                className="h-12 w-12 object-contain rounded"
+              />
+            ) : (
+              <div className="h-12 w-12 rounded bg-slate-100 text-slate-500 flex items-center justify-center text-xs">
+                LOGO
+              </div>
+            )}
+            <div>
+              <p className="text-sm text-slate-500">{academyName || '補習班名稱'}</p>
+              <h1 className="text-2xl font-bold tracking-tight">學生評量表</h1>
+              <p className="text-sm text-slate-500 mt-1">期間：{rangeLabel}</p>
+            </div>
           </div>
           <div className="text-sm text-right text-slate-600 space-y-1">
             <p>
@@ -77,6 +91,17 @@ const ExportReport = forwardRef(function ExportReport(
             ))}
           </tbody>
         </table>
+
+        <div className="mt-4 grid grid-cols-2 gap-8 text-sm text-slate-600">
+          <div>
+            <p className="text-xs text-slate-400 mb-1">老師簽名</p>
+            <div className="border-b border-slate-300 h-8" />
+          </div>
+          <div>
+            <p className="text-xs text-slate-400 mb-1">家長簽名</p>
+            <div className="border-b border-slate-300 h-8" />
+          </div>
+        </div>
 
         <div className="mt-3 text-[10px] text-slate-400 text-right">
           匯出時間：{generatedAt}
