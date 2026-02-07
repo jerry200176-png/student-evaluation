@@ -2,11 +2,19 @@ import { useState } from 'react'
 import StudentList from './components/StudentList'
 import StudentForm from './components/StudentForm'
 import RecordForm from './components/RecordForm'
+import { useStorage } from './hooks/useStorage'
 
 export default function App() {
   const [view, setView] = useState('list') // list | addStudent | addRecord | editRecord
   const [selectedStudent, setSelectedStudent] = useState(null)
   const [selectedRecord, setSelectedRecord] = useState(null)
+  const {
+    students,
+    addStudent,
+    deleteStudent,
+    addRecord,
+    updateRecord,
+  } = useStorage()
 
   const handleAddStudent = () => {
     setSelectedStudent(null)
@@ -36,7 +44,10 @@ export default function App() {
       {/* Header */}
       <header className="sticky top-0 z-10 bg-[#1e3a5f] text-white shadow-lg">
         <div className="flex items-center justify-between px-4 py-4 max-w-2xl mx-auto">
-          <h1 className="text-xl font-bold tracking-tight">學生評量表</h1>
+          <div>
+            <h1 className="text-xl font-bold tracking-tight">學生評量表</h1>
+            <p className="text-xs text-amber-100/90">學生數：{students.length}</p>
+          </div>
           {view === 'list' && (
             <button
               onClick={handleAddStudent}
@@ -58,10 +69,15 @@ export default function App() {
 
       <main className="max-w-2xl mx-auto px-4 py-6 pb-24">
         {view === 'list' && (
-          <StudentList onAddRecord={handleAddRecord} onEditRecord={handleEditRecord} />
+          <StudentList
+            students={students}
+            deleteStudent={deleteStudent}
+            onAddRecord={handleAddRecord}
+            onEditRecord={handleEditRecord}
+          />
         )}
         {view === 'addStudent' && (
-          <StudentForm onSave={handleBack} onCancel={handleBack} />
+          <StudentForm onSave={handleBack} onCancel={handleBack} addStudent={addStudent} />
         )}
         {(view === 'addRecord' || view === 'editRecord') && selectedStudent && (
           <RecordForm
@@ -70,6 +86,8 @@ export default function App() {
             onSave={handleBack}
             onCancel={handleBack}
             isEdit={view === 'editRecord'}
+            addRecord={addRecord}
+            updateRecord={updateRecord}
           />
         )}
       </main>

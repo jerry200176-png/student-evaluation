@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { useStorage } from '../hooks/useStorage'
 
 const HOMEWORK_STATUS = [
   { value: 'completed', label: '已完成' },
@@ -14,8 +13,7 @@ const formatDate = (d) => {
   return date.toISOString().split('T')[0]
 }
 
-export default function RecordForm({ student, record, onSave, onCancel, isEdit }) {
-  const { addRecord, updateRecord } = useStorage()
+export default function RecordForm({ student, record, onSave, onCancel, isEdit, addRecord, updateRecord }) {
   const [form, setForm] = useState({
     date: formatDate(new Date()),
     time: '',

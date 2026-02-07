@@ -1,8 +1,6 @@
 import { useState } from 'react'
-import { useStorage } from '../hooks/useStorage'
 
-export default function StudentList({ onAddRecord, onEditRecord }) {
-  const { students, deleteStudent } = useStorage()
+export default function StudentList({ students, deleteStudent, onAddRecord, onEditRecord }) {
   const [expandedId, setExpandedId] = useState(null)
   const [confirmDelete, setConfirmDelete] = useState(null)
 

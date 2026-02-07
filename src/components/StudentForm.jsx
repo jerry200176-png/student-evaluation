@@ -1,8 +1,6 @@
 import { useState } from 'react'
-import { useStorage } from '../hooks/useStorage'
 
-export default function StudentForm({ onSave, onCancel }) {
-  const { addStudent } = useStorage()
+export default function StudentForm({ onSave, onCancel, addStudent }) {
   const [form, setForm] = useState({
     name: '',
     school: '',
