@@ -5,6 +5,7 @@ const STORAGE_KEY = 'student-evaluation-data'
 const defaultSettings = {
   academyName: '台北全真一對一補習班',
   logoDataUrl: '',
+  teacherName: '',
 }
 
 const defaultData = {

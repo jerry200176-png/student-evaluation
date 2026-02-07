@@ -33,6 +33,14 @@ const toDateOnly = (dateString) => {
   return date
 }
 
+const getRecordDateTime = (record) => {
+  if (!record?.date) return null
+  const time = record.time ? `${record.time}:00` : '00:00:00'
+  const date = new Date(`${record.date}T${time}`)
+  if (!Number.isNaN(date.getTime())) return date
+  return toDateOnly(record.date)
+}
+
 const getLast8DaysRange = () => {
   const today = new Date()
   const end = new Date(today.getFullYear(), today.getMonth(), today.getDate())
@@ -49,6 +57,31 @@ const getLast8DaysRecords = (records) => {
       return date && date >= start && date <= end
     })
     .sort((a, b) => new Date(a.date) - new Date(b.date))
+}
+
+const getLatestRecords = (records, limit = 8) => {
+  const sorted = (records || [])
+    .map((record) => ({
+      ...record,
+      _sortTime: getRecordDateTime(record),
+    }))
+    .filter((record) => record._sortTime)
+    .sort((a, b) => b._sortTime - a._sortTime)
+  return sorted.slice(0, limit).map(({ _sortTime, ...record }) => record)
+}
+
+const getLatestRangeLabel = (records) => {
+  if (records.length === 0) return '最新 0 筆'
+  const sorted = [...records].sort((a, b) => {
+    const timeA = getRecordDateTime(a)
+    const timeB = getRecordDateTime(b)
+    if (!timeA || !timeB) return 0
+    return timeA - timeB
+  })
+  const start = sorted[0]?.date
+  const end = sorted[sorted.length - 1]?.date
+  if (!start || !end) return `最新 ${records.length} 筆`
+  return `最新 ${records.length} 筆（${start} ~ ${end}）`
 }
 
 const parseScore = (value) => {
@@ -120,25 +153,27 @@ export default function StudentList({
   })
 
   const exportLast8Days = async (student) => {
-    const { start, end } = getLast8DaysRange()
-    const records = getLast8DaysRecords(student.records)
+    const latestRecords = getLatestRecords(student.records, 8)
 
-    if (records.length === 0) {
-      window.alert('近八天沒有可匯出的記錄')
+    if (latestRecords.length === 0) {
+      window.alert('目前沒有可匯出的記錄')
       return
     }
-    const rangeLabel = `${formatDate(start)} ~ ${formatDate(end)}`
+    const rangeLabel = getLatestRangeLabel(latestRecords)
     const generatedAt = formatDateTime(new Date())
 
     const previewWindow = isIOS() ? window.open('', '_blank') : null
     setExportingId(student.id)
     setExportData({
       student,
-      records,
+      records: [...latestRecords].sort(
+        (a, b) => getRecordDateTime(a) - getRecordDateTime(b)
+      ),
       rangeLabel,
       generatedAt,
       academyName: settings?.academyName,
       logoDataUrl: settings?.logoDataUrl,
+      teacherName: settings?.teacherName,
     })
 
     try {
@@ -166,7 +201,7 @@ export default function StudentList({
         previewWindow.location.href = dataUrl
         previewWindow.focus()
       } else {
-        const fileName = `評量表_${student.name}_${formatDate(start)}-${formatDate(end)}.png`
+        const fileName = `評量表_${student.name}_最新${latestRecords.length}筆.png`
         const link = document.createElement('a')
         link.href = dataUrl
         link.download = fileName
@@ -331,7 +366,7 @@ export default function StudentList({
                   disabled={exportingId === student.id}
                   className="px-3 py-1.5 bg-emerald-500 text-white rounded-lg text-sm font-medium hover:bg-emerald-600 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  匯出近 8 天評量表
+                  匯出最新 8 筆評量表
                 </button>
               </div>
               {(student.records || []).length === 0 ? (
@@ -410,6 +445,7 @@ export default function StudentList({
               generatedAt={exportData.generatedAt}
               academyName={exportData.academyName}
               logoDataUrl={exportData.logoDataUrl}
+            teacherName={exportData.teacherName}
             />
           </div>
         </div>

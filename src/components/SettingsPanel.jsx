@@ -8,10 +8,12 @@ export default function SettingsPanel({
   onExportBackup,
 }) {
   const [academyName, setAcademyName] = useState(settings.academyName || '')
+  const [teacherName, setTeacherName] = useState(settings.teacherName || '')
 
   useEffect(() => {
     setAcademyName(settings.academyName || '')
-  }, [settings.academyName])
+    setTeacherName(settings.teacherName || '')
+  }, [settings.academyName, settings.teacherName])
 
   const handleLogoChange = (event) => {
     const file = event.target.files?.[0]
@@ -35,32 +37,49 @@ export default function SettingsPanel({
       setAcademyName(settings.academyName || '')
       return
     }
-    updateSettings({ academyName: trimmed })
+    updateSettings({
+      academyName: trimmed,
+      teacherName: teacherName.trim(),
+    })
   }
 
   return (
     <div className="space-y-4">
       <div className="bg-white rounded-xl shadow-md p-6 space-y-4">
         <h2 className="text-lg font-semibold text-slate-800">補習班資訊</h2>
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">
-            補習班名稱
-          </label>
-          <div className="flex flex-col sm:flex-row gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              補習班名稱
+            </label>
             <input
               type="text"
               value={academyName}
               onChange={(e) => setAcademyName(e.target.value)}
-              className="flex-1 px-4 py-2 rounded-lg border border-slate-200 focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition"
+              className="w-full px-4 py-2 rounded-lg border border-slate-200 focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition"
             />
-            <button
-              type="button"
-              onClick={handleSaveName}
-              className="px-4 py-2 bg-amber-500 text-slate-900 rounded-lg font-medium hover:bg-amber-600"
-            >
-              儲存
-            </button>
           </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              老師姓名
+            </label>
+            <input
+              type="text"
+              value={teacherName}
+              onChange={(e) => setTeacherName(e.target.value)}
+              placeholder="可留空"
+              className="w-full px-4 py-2 rounded-lg border border-slate-200 focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition"
+            />
+          </div>
+        </div>
+        <div>
+          <button
+            type="button"
+            onClick={handleSaveName}
+            className="px-4 py-2 bg-amber-500 text-slate-900 rounded-lg font-medium hover:bg-amber-600"
+          >
+            儲存
+          </button>
         </div>
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1">

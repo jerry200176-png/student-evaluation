@@ -10,7 +10,15 @@ const HOMEWORK_STATUS_LABELS = {
 const cellClass = 'border border-slate-200 px-2 py-2 align-top'
 
 const ExportReport = forwardRef(function ExportReport(
-  { student, records, rangeLabel, generatedAt, academyName, logoDataUrl },
+  {
+    student,
+    records,
+    rangeLabel,
+    generatedAt,
+    academyName,
+    logoDataUrl,
+    teacherName,
+  },
   ref
 ) {
   return (
@@ -47,6 +55,10 @@ const ExportReport = forwardRef(function ExportReport(
             <p>
               <span className="text-slate-500">上課科目：</span>
               {student.subject || '—'}
+            </p>
+            <p>
+              <span className="text-slate-500">老師姓名：</span>
+              {teacherName || '—'}
             </p>
           </div>
         </div>
