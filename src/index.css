@@ -1,0 +1,29 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-primary: #1e3a5f;
+  --color-primary-light: #2d5a8a;
+  --color-accent: #e8b86d;
+  --color-surface: #f8fafc;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  touch-action: manipulation;
+}
+
+body {
+  @apply bg-slate-50 text-slate-800 antialiased;
+  font-family: 'Noto Sans TC', system-ui, sans-serif;
+}
+
+/* Safe area for notched phones */
+.safe-area {
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+}
